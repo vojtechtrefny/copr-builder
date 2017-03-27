@@ -1,5 +1,4 @@
 import argparse
-import atexit
 import configparser
 import copr
 import datetime
@@ -14,6 +13,7 @@ import tempfile
 import time
 
 from collections import namedtuple
+from copr.client_v2.common import BuildStateValues
 from distutils.version import LooseVersion
 
 Version = namedtuple('Version', ['version', 'build', 'date', 'git_hash'])
@@ -42,8 +42,6 @@ class GitRepo(object):
         self.tempdir = tempfile.TemporaryDirectory()
 
         self.gitdir = None
-
-        atexit.register(self.cleanup)  # remove the tempdir at exit
 
     def clone(self):
         command = 'cd %s && git clone %s' % (self.tempdir.name, self.repo_url)
@@ -76,9 +74,6 @@ class GitRepo(object):
         ret, out = run_command(command)
         if ret != 0:
             raise CoprBuilderError('Failed to merge brach %s:\n%s' % (branch, out))
-
-    def cleanup(self):
-        self.tempdir.cleanup()
 
 
 class Project(object):
@@ -176,7 +171,7 @@ class Project(object):
             raise CoprBuilderError('Failed to create source archive for %s:\n%s' % (self.project_data['package'], out))
 
         # archive should be created, get everything that looks like one
-        archives = [f for f in os.listdir(self.git_dir) if re.match(r'.*\.tar\.[gz|bz|bz2]', f)]
+        archives = [f for f in os.listdir(self.git_dir) if re.match(r'.*\.tar\.[gz|bz|bz2|xz]', f)]
         if not archives:
             raise CoprBuilderError('Failed to find source archive after creating it.')
         if len(archives) > 1:
@@ -355,10 +350,12 @@ class CoprBuilder(object):
 
         while builds:
             for build in builds:
-                if build.state in ('skipped', 'failed', 'succeeded', 'canceled'):
+                b = build._handle.get_one(build.id)
+                if b.state in (BuildStateValues.SKIPPED, BuildStateValues.FAILED,
+                               BuildStateValues.SUCCEEDED, BuildStateValues.CANCELED):
                     logging.info('Build of %s-%s (ID: %s) finished: %s',
-                                 build.package_name, build.package_version, build.id, build.state)
-                    if build.state == 'failed':
+                                 b.package_name, b.package_version, b.id, b.state)
+                    if b.state == BuildStateValues.FAILED:
                         success = False
                     builds.remove(build)
 
