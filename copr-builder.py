@@ -171,7 +171,7 @@ class Project(object):
             raise CoprBuilderError('Failed to create source archive for %s:\n%s' % (self.project_data['package'], out))
 
         # archive should be created, get everything that looks like one
-        archives = [f for f in os.listdir(self.git_dir) if re.match(r'.*\.tar\.[gz|bz|bz2]', f)]
+        archives = [f for f in os.listdir(self.git_dir) if re.match(r'.*\.tar\.[gz|bz|bz2|xz]', f)]
         if not archives:
             raise CoprBuilderError('Failed to find source archive after creating it.')
         if len(archives) > 1:
