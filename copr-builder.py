@@ -13,6 +13,7 @@ import tempfile
 import time
 
 from collections import namedtuple
+from copr.client_v2.common import BuildStateValues
 from distutils.version import LooseVersion
 
 Version = namedtuple('Version', ['version', 'build', 'date', 'git_hash'])
@@ -350,10 +351,11 @@ class CoprBuilder(object):
         while builds:
             for build in builds:
                 b = build._handle.get_one(build.id)
-                if b.state in ('skipped', 'failed', 'succeeded', 'canceled'):
+                if b.state in (BuildStateValues.SKIPPED, BuildStateValues.FAILED,
+                               BuildStateValues.SUCCEEDED, BuildStateValues.CANCELED):
                     logging.info('Build of %s-%s (ID: %s) finished: %s',
                                  b.package_name, b.package_version, b.id, b.state)
-                    if b.state == 'failed':
+                    if b.state == BuildStateValues.FAILED:
                         success = False
                     builds.remove(build)
 
