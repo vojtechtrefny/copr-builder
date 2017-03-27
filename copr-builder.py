@@ -349,10 +349,11 @@ class CoprBuilder(object):
 
         while builds:
             for build in builds:
-                if build.state in ('skipped', 'failed', 'succeeded', 'canceled'):
+                b = build._handle.get_one(build.id)
+                if b.state in ('skipped', 'failed', 'succeeded', 'canceled'):
                     logging.info('Build of %s-%s (ID: %s) finished: %s',
-                                 build.package_name, build.package_version, build.id, build.state)
-                    if build.state == 'failed':
+                                 b.package_name, b.package_version, b.id, b.state)
+                    if b.state == 'failed':
                         success = False
                     builds.remove(build)
 
