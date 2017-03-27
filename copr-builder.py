@@ -1,5 +1,4 @@
 import argparse
-import atexit
 import configparser
 import copr
 import datetime
@@ -43,8 +42,6 @@ class GitRepo(object):
 
         self.gitdir = None
 
-        atexit.register(self.cleanup)  # remove the tempdir at exit
-
     def clone(self):
         command = 'cd %s && git clone %s' % (self.tempdir.name, self.repo_url)
         ret, out = run_command(command)
@@ -76,9 +73,6 @@ class GitRepo(object):
         ret, out = run_command(command)
         if ret != 0:
             raise CoprBuilderError('Failed to merge brach %s:\n%s' % (branch, out))
-
-    def cleanup(self):
-        self.tempdir.cleanup()
 
 
 class Project(object):
