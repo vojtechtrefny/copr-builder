@@ -318,6 +318,7 @@ class CoprBuilder(object):
 
     def do_builds(self, projects):
         srpms = {}
+        success = True
 
         if projects:
             self._check_projects_input(projects)
@@ -333,6 +334,7 @@ class CoprBuilder(object):
                     srpms[project] = srpm
             except CoprBuilderError as e:
                 logging.error('Failed to create SRPM for %s:\n%s', project, str(e))
+                success = False
 
         # for all generated srpms run the copr build
         builds = []
@@ -342,8 +344,9 @@ class CoprBuilder(object):
                 builds.append(build)
             except CoprBuilderError as e:
                 logging.error('Failed to start Copr build for %s:\n%s', project, str(e))
+                success = False
 
-        return self._watch_builds(builds)
+        return self._watch_builds(builds) and success
 
     def _do_copr_build(self, project, srpm):
         copr_user = self.config[project]['copr_user']
