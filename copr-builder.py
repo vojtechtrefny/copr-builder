@@ -304,11 +304,21 @@ class CoprBuilder(object):
 
         self.copr = copr.create_client2_from_file_config()
 
-    def do_builds(self):
+    def _check_projects_input(self, projects):
+        wrong = [p for p in projects if p not in self.config.sections()]
+        if wrong:
+            raise CoprBuilderError('Requested project(s) %s not found in config.' % wrong)
+
+    def do_builds(self, projects):
         srpms = {}
 
+        if projects:
+            self._check_projects_input(projects)
+        else:
+            projects = self.config.sections()
+
         # generate srpms for projects in config
-        for project in self.config.sections():
+        for project in projects:
             try:
                 p = Project(self.config[project], self.copr)
                 srpm = p.build_srpm()
@@ -368,7 +378,10 @@ if __name__ == '__main__':
 
     argparser = argparse.ArgumentParser(description='Copr builder')
     argparser.add_argument('-v', '--verbose', action='store_true', help='print debug messages')
-    argparser.add_argument('config', nargs=1, help='config file location')
+    argparser.add_argument('-p', '--projects', nargs='*', dest='projects', action='store',
+                           help='projects to build; if not given, all projects from config will be built')
+    argparser.add_argument('-c', '--config', nargs=1, dest='config', action='store',
+                           help='config file location')
     args = argparser.parse_args()
 
     if args.verbose:
@@ -377,6 +390,6 @@ if __name__ == '__main__':
         logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 
     builder = CoprBuilder(args.config)
-    suc = builder.do_builds()
+    suc = builder.do_builds(args.projects)
 
     sys.exit(0 if suc else 1)
