@@ -298,11 +298,16 @@ class Project(object):
         # build the srpm
         command = 'cd %s && rpmbuild -bs %s' % (git_dir, spec)
         ret, out = run_command(command)
+
+        # remove the source archive, we no longer need it
+        os.remove(os.path.join(rpmsource, archive))
+
         if ret != 0:
             raise CoprBuilderError('SPRM generation failed:\n %s' % out)
 
         srpm = out.split('Wrote:')[1].strip()
         log.info('%s SRPM built for %s: %s', self._log_prefix, pkg_name, srpm)
+
         return srpm
 
 
@@ -366,6 +371,9 @@ class CoprBuilder(object):
         build = copr_project.create_build_from_file(srpm)
 
         log.info('Started Copr build of %s (ID: %s)', srpm, build.id)
+
+        # remove the SRPM, we no longer need it
+        os.remove(srpm)
 
         return build
 
