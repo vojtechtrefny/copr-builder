@@ -70,6 +70,13 @@ class GitRepo(object):
             raise CoprBuilderError('Failed to checkout branch %s:\n%s' % (branch, out))
 
     def merge(self, branch):
+        # we need to set username and email to make git happy before merging
+        command = 'cd %s && git config user.email "jenkins@example.com" && '\
+                  'git config user.name "Jenkins"' % self.gitdir
+        ret, out = run_command(command)
+        if ret != 0:
+            raise CoprBuilderError('Failed to set username and email before merging.\n%s' % out)
+
         command = 'cd %s && git merge --ff origin/%s' % (self.gitdir, branch)
         ret, out = run_command(command)
         if ret != 0:
