@@ -19,6 +19,10 @@ from distutils.version import LooseVersion
 Version = namedtuple('Version', ['version', 'build', 'date', 'git_hash'])
 
 
+log = logging.getLogger("copr.builder")
+copr_log = logging.getLogger("copr.client")
+
+
 class CoprBuilderError(Exception):
     pass
 
@@ -101,7 +105,7 @@ class Project(object):
 
             returns (str): path to newly created SRPM
         '''
-        logging.info('%s New SRPM build started.', self._log_prefix)
+        log.info('%s New SRPM build started.', self._log_prefix)
         last_build = self._get_last_build_version()
 
         # checkout to the right branch
@@ -113,7 +117,7 @@ class Project(object):
 
         last_commit = self.git_repo.last_commit()
         if last_build and last_commit == last_build.git_hash:
-            logging.info('%s Newest version is already built (git hash: %s).', self._log_prefix, last_commit)
+            log.info('%s Newest version is already built (git hash: %s).', self._log_prefix, last_commit)
             return None
 
         # make source archive
@@ -158,19 +162,19 @@ class Project(object):
         all_builds = self.copr_client.builds.get_list(owner=copr_user, project_id=pid)
         project_builds = [b for b in all_builds if b.package_name == copr_package and b.state not in ('skipped', 'canceled')]
         if len(project_builds) == 0:
-            logging.debug('%s No previous builds found.', self._log_prefix)
+            log.debug('%s No previous builds found.', self._log_prefix)
             return None  # no previous builds, we are doing the first one
 
         last = max(project_builds, key=lambda x: x.submitted_on)
 
-        logging.debug('%s Found latest build: %s-%s (ID: %s)', self._log_prefix,
-                      last.package_name, last.package_version, last.id)
+        log.debug('%s Found latest build: %s-%s (ID: %s)', self._log_prefix,
+                  last.package_name, last.package_version, last.id)
         return self._extract_version(last.package_version)
 
     def _make_archive(self):
         ''' Create source archive for this project '''
 
-        logging.debug('%s Started creating source archive.', self._log_prefix)
+        log.debug('%s Started creating source archive.', self._log_prefix)
 
         command = 'cd %s && %s' % (self.git_dir, self.project_data['archive_cmd'])
         ret, out = run_command(command)
@@ -184,7 +188,7 @@ class Project(object):
         if len(archives) > 1:
             raise CoprBuilderError('Found more than one file that looks like source archive.')
 
-        logging.debug('%s Created source archive: %s', self._log_prefix, archives[0])
+        log.debug('%s Created source archive: %s', self._log_prefix, archives[0])
 
         return archives[0]
 
@@ -200,7 +204,7 @@ class Project(object):
         if len(specs) > 1:
             raise CoprBuilderError('Found more than one file that looks a spec file.')
 
-        logging.debug('%s Spec found: %s', self._log_prefix, specs[0])
+        log.debug('%s Spec found: %s', self._log_prefix, specs[0])
 
         return specs[0]
 
@@ -218,7 +222,7 @@ class Project(object):
 
         date = datetime.date.today().strftime('%Y%m%d')
 
-        logging.debug('%s New version: %s-%s.%sgit%s', self._log_prefix, spec_version.version, release, date, last_commit)
+        log.debug('%s New version: %s-%s.%sgit%s', self._log_prefix, spec_version.version, release, date, last_commit)
 
         return Version(spec_version.version, release, date, last_commit)
 
@@ -243,7 +247,7 @@ class Project(object):
 
         release = release.split('%')[0]
 
-        logging.debug('%s Spec version: %s-%s', self._log_prefix, version, release)
+        log.debug('%s Spec version: %s-%s', self._log_prefix, version, release)
 
         return Version(version, release, None, None)
 
@@ -273,7 +277,7 @@ class Project(object):
             for line in new_spec:
                 f.write(line)
 
-        logging.debug('%s Spec updated.', self._log_prefix)
+        log.debug('%s Spec updated.', self._log_prefix)
 
         return spec_file
 
@@ -294,11 +298,16 @@ class Project(object):
         # build the srpm
         command = 'cd %s && rpmbuild -bs %s' % (git_dir, spec)
         ret, out = run_command(command)
+
+        # remove the source archive, we no longer need it
+        os.remove(os.path.join(rpmsource, archive))
+
         if ret != 0:
             raise CoprBuilderError('SPRM generation failed:\n %s' % out)
 
         srpm = out.split('Wrote:')[1].strip()
-        logging.info('%s SRPM built for %s: %s', self._log_prefix, pkg_name, srpm)
+        log.info('%s SRPM built for %s: %s', self._log_prefix, pkg_name, srpm)
+
         return srpm
 
 
@@ -333,7 +342,7 @@ class CoprBuilder(object):
                 if srpm:
                     srpms[project] = srpm
             except CoprBuilderError as e:
-                logging.error('Failed to create SRPM for %s:\n%s', project, str(e))
+                log.error('Failed to create SRPM for %s:\n%s', project, str(e))
                 success = False
 
         # for all generated srpms run the copr build
@@ -343,7 +352,7 @@ class CoprBuilder(object):
                 build = self._do_copr_build(project, srpms[project])
                 builds.append(build)
             except CoprBuilderError as e:
-                logging.error('Failed to start Copr build for %s:\n%s', project, str(e))
+                log.error('Failed to start Copr build for %s:\n%s', project, str(e))
                 success = False
 
         return self._watch_builds(builds) and success
@@ -361,7 +370,10 @@ class CoprBuilder(object):
         copr_project = plist.projects[0]
         build = copr_project.create_build_from_file(srpm)
 
-        logging.info('Started Copr build of %s (ID: %s)', srpm, build.id)
+        log.info('Started Copr build of %s (ID: %s)', srpm, build.id)
+
+        # remove the SRPM, we no longer need it
+        os.remove(srpm)
 
         return build
 
@@ -373,8 +385,8 @@ class CoprBuilder(object):
                 b = build._handle.get_one(build.id)
                 if b.state in (BuildStateValues.SKIPPED, BuildStateValues.FAILED,
                                BuildStateValues.SUCCEEDED, BuildStateValues.CANCELED):
-                    logging.info('Build of %s-%s (ID: %s) finished: %s',
-                                 b.package_name, b.package_version, b.id, b.state)
+                    log.info('Build of %s-%s (ID: %s) finished: %s',
+                             b.package_name, b.package_version, b.id, b.state)
                     if b.state == BuildStateValues.FAILED:
                         success = False
                     builds.remove(build)
@@ -394,10 +406,13 @@ if __name__ == '__main__':
                            help='config file location')
     args = argparser.parse_args()
 
+    logging.basicConfig(stream=sys.stderr, format='%(name)s: %(message)s')
     if args.verbose:
-        logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
+        log.setLevel(logging.DEBUG)
+        copr_log.setLevel(logging.DEBUG)
     else:
-        logging.basicConfig(stream=sys.stderr, level=logging.INFO)
+        log.setLevel(logging.INFO)
+        copr_log.setLevel(logging.INFO)
 
     builder = CoprBuilder(args.config)
     suc = builder.do_builds(args.projects)
