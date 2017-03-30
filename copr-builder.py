@@ -18,6 +18,7 @@ from distutils.version import LooseVersion
 
 Version = namedtuple('Version', ['version', 'build', 'date', 'git_hash'])
 
+BUILD_URL_TEMPLATE = "https://copr.fedorainfracloud.org/coprs/%s/%s/build/%s"
 
 log = logging.getLogger("copr.builder")
 copr_log = logging.getLogger("copr.client")
@@ -371,6 +372,7 @@ class CoprBuilder(object):
         build = copr_project.create_build_from_file(srpm)
 
         log.info('Started Copr build of %s (ID: %s)', srpm, build.id)
+        log.info('Build URL: %s', BUILD_URL_TEMPLATE % (copr_user, copr_repo, build.id))
 
         # remove the SRPM, we no longer need it
         os.remove(srpm)
