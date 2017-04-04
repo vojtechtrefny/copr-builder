@@ -29,6 +29,10 @@ class CoprBuilderError(Exception):
     pass
 
 
+class CoprBuilderAlreadyFailed(CoprBuilderError):
+    pass
+
+
 def run_command(command):
     res = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE,
                            stderr=subprocess.PIPE)
@@ -108,7 +112,7 @@ class Project(object):
             returns (str): path to newly created SRPM
         '''
         log.info('%s New SRPM build started.', self._log_prefix)
-        last_build = self._get_last_build_version()
+        last_build = self._get_last_build()
 
         # checkout to the right branch
         self.git_repo.checkout(self.project_data['git_branch'])
@@ -118,15 +122,22 @@ class Project(object):
             self.git_repo.merge(self.project_data['git_merge_branch'])
 
         last_commit = self.git_repo.last_commit()
-        if last_build and last_commit == last_build.git_hash:
-            log.info('%s Newest version is already built (git hash: %s).', self._log_prefix, last_commit)
-            return None
+        last_version = self._extract_version(last_build.package_version)
+        if last_build and last_commit == last_version.git_hash:
+            if last_build.state == BuildStateValues.FAILED:
+                date = datetime.date.fromtimestamp(last_build.submitted_on).isoformat()
+                log.error('%s Build of the newest version (git hash: %s) was already submitted on '
+                          '%s but it failed.', self._log_prefix, last_version.git_hash, date)
+                raise CoprBuilderAlreadyFailed
+            else:
+                log.info('%s Newest version is already built (git hash: %s).', self._log_prefix, last_commit)
+                return None
 
         # make source archive
         archive = self._make_archive()
 
         # update spec file
-        spec = self._update_spec_file(last_build, archive, last_commit)
+        spec = self._update_spec_file(last_version, archive, last_commit)
 
         # make srpm
         srpm = self._make_srpm(spec, archive)
@@ -146,8 +157,8 @@ class Project(object):
 
         return Version(version, build_num, datestr, git_hash)
 
-    def _get_last_build_version(self):
-        ''' Get last package version built in Copr for this project '''
+    def _get_last_build(self):
+        ''' Get last package build built in Copr for this project '''
 
         copr_user = self.project_data['copr_user']
         copr_repo = self.project_data['copr_repo']
@@ -162,7 +173,8 @@ class Project(object):
 
         # get list of builds for this Copr project
         all_builds = self.copr_client.builds.get_list(owner=copr_user, project_id=pid)
-        project_builds = [b for b in all_builds if b.package_name == copr_package and b.state not in ('skipped', 'canceled')]
+        project_builds = [b for b in all_builds if b.package_name == copr_package and
+                          b.state not in (BuildStateValues.SKIPPED, BuildStateValues.CANCELED)]
         if len(project_builds) == 0:
             log.debug('%s No previous builds found.', self._log_prefix)
             return None  # no previous builds, we are doing the first one
@@ -171,7 +183,7 @@ class Project(object):
 
         log.debug('%s Found latest build: %s-%s (ID: %s)', self._log_prefix,
                   last.package_name, last.package_version, last.id)
-        return self._extract_version(last.package_version)
+        return last
 
     def _make_archive(self):
         ''' Create source archive for this project '''
@@ -343,6 +355,10 @@ class CoprBuilder(object):
                 srpm = p.build_srpm()
                 if srpm:
                     srpms[project] = srpm
+            # previous build with the same srpm already failed, so do not try to
+            # run the build again a just fail
+            except CoprBuilderAlreadyFailed:
+                success = False
             except CoprBuilderError as e:
                 log.error('Failed to create SRPM for %s:\n%s', project, str(e))
                 success = False
