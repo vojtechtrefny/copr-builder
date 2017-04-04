@@ -395,6 +395,12 @@ class CoprBuilder(object):
 
         return build
 
+    def _print_chroot_states(self, build):
+        tasks = build.get_build_tasks()
+        tasks = sorted(list(tasks), key=lambda x: x.chroot_name)
+        for task in tasks:
+            log.info('\tChroot %s finished: %s', task.chroot_name, task.state)
+
     def _watch_builds(self, builds):
         success = True
 
@@ -407,6 +413,7 @@ class CoprBuilder(object):
                              b.package_name, b.package_version, b.id, b.state)
                     if b.state == BuildStateValues.FAILED:
                         success = False
+                        self._print_chroot_states(b)
                     builds.remove(build)
 
             time.sleep(0.5)
