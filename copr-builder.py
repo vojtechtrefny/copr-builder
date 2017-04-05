@@ -373,6 +373,13 @@ class CoprBuilder(object):
                 log.error('Failed to start Copr build for %s:\n%s', project, str(e))
                 success = False
 
+        # now remove the srpms, we no longer need them
+        # some projects may actually share the same srpm, so it could be
+        # already deleted
+        for srpm in srpms.values():
+            if os.path.exists(srpm):
+                os.remove(srpm)
+
         return self._watch_builds(builds) and success
 
     def _do_copr_build(self, project, srpm):
@@ -389,9 +396,6 @@ class CoprBuilder(object):
         build = copr_project.create_build_from_file(srpm)
 
         log.info('Started Copr build of %s (ID: %s)', srpm, build.id)
-
-        # remove the SRPM, we no longer need it
-        os.remove(srpm)
 
         return build
 
