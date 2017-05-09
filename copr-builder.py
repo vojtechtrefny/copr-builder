@@ -20,6 +20,7 @@ from distutils.version import LooseVersion
 
 Version = namedtuple('Version', ['version', 'build', 'date', 'git_hash'])
 
+BUILD_URL_TEMPLATE = "https://copr.fedorainfracloud.org/coprs/%s/%s/build/%s"
 
 log = logging.getLogger("copr.builder")
 copr_log = logging.getLogger("copr.client")
@@ -382,6 +383,13 @@ class CoprBuilder(object):
 
         return self._watch_builds(builds) and success
 
+    def _get_copr_url(self, copr_user, copr_repo, build_id):
+        if copr_user.startswith('@'):
+            # for groups, the '@' symbol is replaced by 'g/'
+            return BUILD_URL_TEMPLATE % ('g/' + copr_user[1:], copr_repo, build_id)
+        else:
+            return BUILD_URL_TEMPLATE % (copr_user, copr_repo, build_id)
+
     def _do_copr_build(self, project, srpm):
         copr_user = self.config[project]['copr_user']
         copr_repo = self.config[project]['copr_repo']
@@ -396,6 +404,7 @@ class CoprBuilder(object):
         build = copr_project.create_build_from_file(srpm)
 
         log.info('Started Copr build of %s (ID: %s)', srpm, build.id)
+        log.info('Build URL: %s', self._get_copr_url(copr_user, copr_repo, build.id))
 
         return build
 
