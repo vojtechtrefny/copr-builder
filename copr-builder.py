@@ -34,9 +34,9 @@ class CoprBuilderAlreadyFailed(CoprBuilderError):
     pass
 
 
-def run_command(command):
+def run_command(command, cwd=None):
     res = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE,
-                           stderr=subprocess.PIPE)
+                           stderr=subprocess.PIPE, cwd=cwd)
 
     out, err = res.communicate()
     if res.returncode != 0:
@@ -55,8 +55,8 @@ class GitRepo(object):
         self.gitdir = None
 
     def clone(self):
-        command = 'cd %s && git clone %s' % (self.tempdir.name, self.repo_url)
-        ret, out = run_command(command)
+        command = 'git clone %s' % self.repo_url
+        ret, out = run_command(command, self.tempdir.name)
         if ret != 0:
             raise CoprBuilderError('Failed to clone %s:\n%s' % (self.repo_url, out))
 
@@ -67,29 +67,29 @@ class GitRepo(object):
         self.gitdir = self.tempdir.name + '/' + subdirs[0]
 
     def last_commit(self, short=True):
-        command = 'cd %s && git log --pretty=format:\'%%%s\' -n 1' % (self.gitdir, 'h' if short else 'H')
-        ret, out = run_command(command)
+        command = 'git log --pretty=format:\'%%%s\' -n 1' % 'h' if short else 'H'
+        ret, out = run_command(command, self.gitdir)
         if ret != 0:
             raise CoprBuilderError('Failed to get last commit hash for %s:\n%s' % (self.repo_url, out))
 
         return out
 
     def checkout(self, branch):
-        command = 'cd %s && git checkout %s' % (self.gitdir, branch)
-        ret, out = run_command(command)
+        command = 'git checkout %s' % branch
+        ret, out = run_command(command, self.gitdir)
         if ret != 0:
             raise CoprBuilderError('Failed to checkout branch %s:\n%s' % (branch, out))
 
     def merge(self, branch):
         # we need to set username and email to make git happy before merging
-        command = 'cd %s && git config user.email "jenkins@example.com" && '\
-                  'git config user.name "Jenkins"' % self.gitdir
-        ret, out = run_command(command)
+        command = 'git config user.email "jenkins@example.com" && '\
+                  'git config user.name "Jenkins"'
+        ret, out = run_command(command, self.gitdir)
         if ret != 0:
             raise CoprBuilderError('Failed to set username and email before merging.\n%s' % out)
 
-        command = 'cd %s && git merge --ff origin/%s' % (self.gitdir, branch)
-        ret, out = run_command(command)
+        command = 'git merge --ff origin/%s' % branch
+        ret, out = run_command(command, self.gitdir)
         if ret != 0:
             raise CoprBuilderError('Failed to merge brach %s:\n%s' % (branch, out))
 
@@ -191,8 +191,8 @@ class Project(object):
 
         log.debug('%s Started creating source archive.', self._log_prefix)
 
-        command = 'cd %s && %s' % (self.git_dir, self.project_data['archive_cmd'])
-        ret, out = run_command(command)
+        command = str(self.project_data['archive_cmd'])
+        ret, out = run_command(command, self.git_dir)
         if ret != 0:
             raise CoprBuilderError('Failed to create source archive for %s:\n%s' % (self.project_data['package'], out))
 
@@ -311,8 +311,8 @@ class Project(object):
                         '%s/%s' % (rpmsource, archive))
 
         # build the srpm
-        command = 'cd %s && rpmbuild -bs %s' % (git_dir, spec)
-        ret, out = run_command(command)
+        command = 'rpmbuild -bs %s' % spec
+        ret, out = run_command(command, git_dir)
 
         # remove the source archive, we no longer need it
         os.remove(os.path.join(rpmsource, archive))
