@@ -22,6 +22,15 @@ Version = namedtuple('Version', ['version', 'build', 'date', 'git_hash'])
 
 BUILD_URL_TEMPLATE = "https://copr.fedorainfracloud.org/coprs/%s/%s/build/%s"
 
+PACKAGE_CONF = 'package'
+COPR_USER_CONF = 'copr_user'
+COPR_REPO_CONF = 'copr_repo'
+GIT_URL_CONF = 'git_url'
+GIT_BRANCH_CONF = 'git_branch'
+GIT_MERGE_BRANCH_CONF = 'git_merge_branch'
+ARCHIVE_CMD_CONF = 'archive_cmd'
+
+
 log = logging.getLogger("copr.builder")
 copr_log = logging.getLogger("copr.client")
 
@@ -100,11 +109,11 @@ class Project(object):
         self.project_data = project_data
         self.copr_client = copr_client
 
-        self._log_prefix = 'Package %s (repo %s/%s):' % (self.project_data['package'],
-                                                         self.project_data['copr_user'],
-                                                         self.project_data['copr_repo'])
+        self._log_prefix = 'Package %s (repo %s/%s):' % (self.project_data[PACKAGE_CONF],
+                                                         self.project_data[COPR_USER_CONF],
+                                                         self.project_data[COPR_REPO_CONF])
 
-        self.git_repo = GitRepo(project_data['git_url'])
+        self.git_repo = GitRepo(project_data[GIT_URL_CONF])
         self.git_repo.clone()
 
     def build_srpm(self):
@@ -116,11 +125,11 @@ class Project(object):
         last_build = self._get_last_build()
 
         # checkout to the right branch
-        self.git_repo.checkout(self.project_data['git_branch'])
+        self.git_repo.checkout(self.project_data[GIT_BRANCH_CONF])
 
         # and do the merge if we want to
-        if 'git_merge_branch' in self.project_data.keys():
-            self.git_repo.merge(self.project_data['git_merge_branch'])
+        if GIT_MERGE_BRANCH_CONF in self.project_data.keys():
+            self.git_repo.merge(self.project_data[GIT_MERGE_BRANCH_CONF])
 
         last_commit = self.git_repo.last_commit()
         last_version = self._extract_version(last_build.package_version)
@@ -161,9 +170,9 @@ class Project(object):
     def _get_last_build(self):
         ''' Get last package build built in Copr for this project '''
 
-        copr_user = self.project_data['copr_user']
-        copr_repo = self.project_data['copr_repo']
-        copr_package = self.project_data['package']
+        copr_user = self.project_data[COPR_USER_CONF]
+        copr_repo = self.project_data[COPR_REPO_CONF]
+        copr_package = self.project_data[PACKAGE_CONF]
 
         # get the project to extract project id
         plist = self.copr_client.projects.get_list(owner=copr_user, name=copr_repo)
@@ -191,10 +200,10 @@ class Project(object):
 
         log.debug('%s Started creating source archive.', self._log_prefix)
 
-        command = str(self.project_data['archive_cmd'])
+        command = str(self.project_data[ARCHIVE_CMD_CONF])
         ret, out = run_command(command, self.git_dir)
         if ret != 0:
-            raise CoprBuilderError('Failed to create source archive for %s:\n%s' % (self.project_data['package'], out))
+            raise CoprBuilderError('Failed to create source archive for %s:\n%s' % (self.project_data[PACKAGE_CONF], out))
 
         # archive should be created, get everything that looks like one
         archives = [f for f in os.listdir(self.git_dir) if re.match(r'.*\.tar\.[gz|bz|bz2|xz]', f)]
@@ -215,7 +224,7 @@ class Project(object):
         specs.extend(glob.glob('%s/*/*.spec' % self.git_dir))
 
         if not specs:
-            raise CoprBuilderError('Failed to find a spec file for %s.' % self.project_data['package'])
+            raise CoprBuilderError('Failed to find a spec file for %s.' % self.project_data[PACKAGE_CONF])
         if len(specs) > 1:
             raise CoprBuilderError('Found more than one file that looks a spec file.')
 
@@ -300,7 +309,7 @@ class Project(object):
         ''' Create SRPM using spec and source archive '''
 
         git_dir = self.git_repo.gitdir
-        pkg_name = self.project_data['package']
+        pkg_name = self.project_data[PACKAGE_CONF]
 
         # copy source archive to rpmbuild/SOURCES
         ret, rpmsource = run_command('rpm -E %_sourcedir')
@@ -391,8 +400,8 @@ class CoprBuilder(object):
             return BUILD_URL_TEMPLATE % (copr_user, copr_repo, build_id)
 
     def _do_copr_build(self, project, srpm):
-        copr_user = self.config[project]['copr_user']
-        copr_repo = self.config[project]['copr_repo']
+        copr_user = self.config[project][COPR_USER_CONF]
+        copr_repo = self.config[project][COPR_REPO_CONF]
 
         # get the project to extract project id
         plist = self.copr.projects.get_list(owner=copr_user, name=copr_repo)
