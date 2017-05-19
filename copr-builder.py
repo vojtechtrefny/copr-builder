@@ -43,6 +43,10 @@ class CoprBuilderAlreadyFailed(CoprBuilderError):
     pass
 
 
+class CoprBuilderConfigurationError(CoprBuilderError):
+    pass
+
+
 def run_command(command, cwd=None):
     res = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE,
                            stderr=subprocess.PIPE, cwd=cwd)
@@ -109,12 +113,20 @@ class Project(object):
         self.project_data = project_data
         self.copr_client = copr_client
 
+        self._test_required_config_values()
+
         self._log_prefix = 'Package %s (repo %s/%s):' % (self.project_data[PACKAGE_CONF],
                                                          self.project_data[COPR_USER_CONF],
                                                          self.project_data[COPR_REPO_CONF])
 
         self.git_repo = GitRepo(project_data[GIT_URL_CONF])
         self.git_repo.clone()
+
+    def _test_required_config_values(self):
+        ''' Test if all required configuration values are set properly. '''
+        for conf in [PACKAGE_CONF, COPR_USER_CONF, COPR_REPO_CONF, GIT_URL_CONF, ARCHIVE_CMD_CONF]:
+            if conf not in self.project_data.keys():
+                raise CoprBuilderConfigurationError('Missing \"%s\" value in the configuration!' % conf)
 
     def build_srpm(self):
         ''' Build an SRPM package for this project
