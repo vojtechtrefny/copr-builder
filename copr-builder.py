@@ -123,7 +123,11 @@ class Project(object):
             self.git_repo.merge(self.project_data['git_merge_branch'])
 
         last_commit = self.git_repo.last_commit()
-        last_version = self._extract_version(last_build.package_version)
+        if last_build:
+            last_version = self._extract_version(last_build.package_version)
+        else:
+            last_version = None
+
         if last_build and last_commit == last_version.git_hash:
             if last_build.state == BuildStateValues.FAILED:
                 date = datetime.date.fromtimestamp(last_build.submitted_on).isoformat()
