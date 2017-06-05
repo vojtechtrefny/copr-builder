@@ -465,7 +465,7 @@ if __name__ == '__main__':
     argparser.add_argument('-v', '--verbose', action='store_true', help='print debug messages')
     argparser.add_argument('-p', '--projects', nargs='*', dest='projects', action='store',
                            help='projects to build; if not given, all projects from config will be built')
-    argparser.add_argument('-c', '--config', nargs=1, dest='config', action='store',
+    argparser.add_argument('-c', '--config', dest='config', action='store',
                            help='config file location')
     args = argparser.parse_args()
 
