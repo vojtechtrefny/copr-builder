@@ -477,6 +477,10 @@ if __name__ == '__main__':
         log.setLevel(logging.INFO)
         copr_log.setLevel(logging.INFO)
 
+    if not os.path.exists(args.config):
+        log.error('Config file "%s" not found.', args.config)
+        sys.exit(1)
+
     builder = CoprBuilder(args.config)
     suc = builder.do_builds(args.projects)
 
