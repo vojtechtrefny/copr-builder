@@ -465,7 +465,7 @@ if __name__ == '__main__':
     argparser.add_argument('-v', '--verbose', action='store_true', help='print debug messages')
     argparser.add_argument('-p', '--projects', nargs='*', dest='projects', action='store',
                            help='projects to build; if not given, all projects from config will be built')
-    argparser.add_argument('-c', '--config', nargs=1, dest='config', action='store',
+    argparser.add_argument('-c', '--config', dest='config', action='store',
                            help='config file location')
     args = argparser.parse_args()
 
@@ -476,6 +476,10 @@ if __name__ == '__main__':
     else:
         log.setLevel(logging.INFO)
         copr_log.setLevel(logging.INFO)
+
+    if not os.path.exists(args.config):
+        log.error('Config file "%s" not found.', args.config)
+        sys.exit(1)
 
     builder = CoprBuilder(args.config)
     suc = builder.do_builds(args.projects)
