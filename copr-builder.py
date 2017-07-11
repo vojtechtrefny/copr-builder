@@ -176,6 +176,10 @@ class Project(object):
     def _extract_version(self, version_str):
         ''' Extract version info from string '''
 
+        # there might be epoch in the version string, just ignore it
+        if ':' in version_str:
+            _epoch, version_str = version_str.split(':')
+
         # version string looks like '2.33-8.20170322gitcb678c83.fc26'
         version, build = version_str.split('-')
         build_num, git, _dist = build.split('.')
