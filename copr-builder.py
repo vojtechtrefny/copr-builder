@@ -182,7 +182,8 @@ class Project(object):
 
         # version string looks like '2.33-8.20170322gitcb678c83.fc26'
         version, build = version_str.split('-')
-        build_num, git, _dist = build.split('.')
+        # ignore the dist part (we don't need it and it is not part of the version for newer builds)
+        build_num, git = build.split('.')[:3]
         datestr, git_hash = git.split('git')
 
         return Version(version, build_num, datestr, git_hash)
