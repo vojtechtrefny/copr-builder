@@ -128,6 +128,21 @@ class Project(object):
             if conf not in self.project_data.keys():
                 raise CoprBuilderConfigurationError('Missing \"%s\" value in the configuration!' % conf)
 
+    def _get_package_version(self, build):
+        if build.package_version:
+            return build.package_version
+
+        # sometimes there is just no package version, try to extract it from
+        # the uploaded SRPM
+        elif build.source_metadata and 'pkg' in build.source_metadata.keys() and build.package_name:
+            # from the SRPM name we want to remove:
+            # - prefix that looks like "package_name-"
+            # - suffix that looks like ".src.rpm"
+            return build.source_metadata['pkg'][len(build.package_name) + 1:-8]
+
+        else:
+            raise CoprBuilderError('Cannot extract version from last build. ID: %s' % build.id)
+
     def build_srpm(self):
         ''' Build an SRPM package for this project
 
@@ -145,7 +160,8 @@ class Project(object):
 
         last_commit = self.git_repo.last_commit()
         if last_build:
-            last_version = self._extract_version(last_build.package_version)
+            package_version = self._get_package_version(last_build)
+            last_version = self._extract_version(package_version)
         else:
             last_version = None
 
