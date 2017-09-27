@@ -16,6 +16,7 @@ import time
 
 from collections import namedtuple
 from copr.client_v2.common import BuildStateValues
+from copr.client_v2.net_client import RequestError
 from distutils.version import LooseVersion
 
 Version = namedtuple('Version', ['version', 'build', 'date', 'git_hash'])
@@ -473,7 +474,11 @@ class CoprBuilder(object):
                                    'found %d' % (copr_user, copr_repo, len(plist.projects)))
 
         copr_project = plist.projects[0]
-        build = copr_project.create_build_from_file(srpm)
+
+        try:
+            build = copr_project.create_build_from_file(srpm)
+        except RequestError as e:
+            raise CoprBuilderError('Failed to create build: %s' % str(e))
 
         log.info('Started Copr build of %s (ID: %s)', srpm, build.id)
         log.info('Build URL: %s', self._get_copr_url(copr_user, copr_repo, build.id))
