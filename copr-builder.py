@@ -30,6 +30,8 @@ GIT_BRANCH_CONF = 'git_branch'
 GIT_MERGE_BRANCH_CONF = 'git_merge_branch'
 ARCHIVE_CMD_CONF = 'archive_cmd'
 
+COPR_CONFIG = os.path.expanduser('~/.config/copr')
+
 
 log = logging.getLogger("copr.builder")
 copr_log = logging.getLogger("copr.client")
@@ -379,7 +381,31 @@ class CoprBuilder(object):
         self.config = configparser.ConfigParser()
         self.config.read(conf_file)
 
+        self._check_copr_token()
         self.copr = copr.create_client2_from_file_config()
+
+    def _check_copr_token(self):
+        if not os.path.isfile(COPR_CONFIG):
+            raise CoprBuilderError('Copr configuration file not found.')
+
+        expiration = None
+        with open(COPR_CONFIG, 'r') as f:
+            for line in f:
+                if line.startswith('# expiration date:'):
+                    try:
+                        expiration = datetime.datetime.strptime(line, "# expiration date: %Y-%m-%d\n")
+                    except ValueError:
+                        # parsing failed, just ignore it
+                        pass
+
+        if expiration is None:
+            log.warning('Failed to get Copr token expiration date from config file.')
+            return
+
+        if expiration < datetime.datetime.now():
+            raise CoprBuilderError('Your Copr token has expired. Expiration date: %s. '
+                                   'Please obtain new at https://copr.fedorainfracloud.org/api/ '
+                                   'and save it to %s.' % (expiration.strftime("%Y-%m-%d"), COPR_CONFIG))
 
     def _check_projects_input(self, projects):
         wrong = [p for p in projects if p not in self.config.sections()]
