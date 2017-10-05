@@ -16,6 +16,7 @@ import time
 
 from collections import namedtuple
 from copr.client_v2.common import BuildStateValues
+from copr.client_v2.net_client import RequestError
 from distutils.version import LooseVersion
 
 Version = namedtuple('Version', ['version', 'build', 'date', 'git_hash'])
@@ -29,6 +30,8 @@ GIT_URL_CONF = 'git_url'
 GIT_BRANCH_CONF = 'git_branch'
 GIT_MERGE_BRANCH_CONF = 'git_merge_branch'
 ARCHIVE_CMD_CONF = 'archive_cmd'
+
+COPR_CONFIG = os.path.expanduser('~/.config/copr')
 
 
 log = logging.getLogger("copr.builder")
@@ -379,7 +382,31 @@ class CoprBuilder(object):
         self.config = configparser.ConfigParser()
         self.config.read(conf_file)
 
+        self._check_copr_token()
         self.copr = copr.create_client2_from_file_config()
+
+    def _check_copr_token(self):
+        if not os.path.isfile(COPR_CONFIG):
+            raise CoprBuilderError('Copr configuration file not found.')
+
+        expiration = None
+        with open(COPR_CONFIG, 'r') as f:
+            for line in f:
+                if line.startswith('# expiration date:'):
+                    try:
+                        expiration = datetime.datetime.strptime(line, "# expiration date: %Y-%m-%d\n")
+                    except ValueError:
+                        # parsing failed, just ignore it
+                        pass
+
+        if expiration is None:
+            log.warning('Failed to get Copr token expiration date from config file.')
+            return
+
+        if expiration < datetime.datetime.now():
+            raise CoprBuilderError('Your Copr token has expired. Expiration date: %s. '
+                                   'Please obtain new at https://copr.fedorainfracloud.org/api/ '
+                                   'and save it to %s.' % (expiration.strftime("%Y-%m-%d"), COPR_CONFIG))
 
     def _check_projects_input(self, projects):
         wrong = [p for p in projects if p not in self.config.sections()]
@@ -447,7 +474,11 @@ class CoprBuilder(object):
                                    'found %d' % (copr_user, copr_repo, len(plist.projects)))
 
         copr_project = plist.projects[0]
-        build = copr_project.create_build_from_file(srpm)
+
+        try:
+            build = copr_project.create_build_from_file(srpm)
+        except RequestError as e:
+            raise CoprBuilderError('Failed to create build: %s' % str(e))
 
         log.info('Started Copr build of %s (ID: %s)', srpm, build.id)
         log.info('Build URL: %s', self._get_copr_url(copr_user, copr_repo, build.id))
