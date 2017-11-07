@@ -8,7 +8,7 @@ Usage
 
 ::
 
-  usage: copr-builder.py [-h] [-v] [-p [PROJECTS [PROJECTS ...]]] [-c CONFIG]
+  usage: copr-builder [-h] [-v] [-p [PROJECTS [PROJECTS ...]]] [-c CONFIG]
 
   Copr builder
 
