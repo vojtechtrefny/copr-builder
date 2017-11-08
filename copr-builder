@@ -1,0 +1,40 @@
+#!/usr/bin/python3
+
+import argparse
+import logging
+import os
+import sys
+
+from copr_builder.copr_builder import CoprBuilder
+
+
+log = logging.getLogger("copr.builder")
+copr_log = logging.getLogger("copr.client")
+
+
+if __name__ == '__main__':
+
+    argparser = argparse.ArgumentParser(description='Copr builder')
+    argparser.add_argument('-v', '--verbose', action='store_true', help='print debug messages')
+    argparser.add_argument('-p', '--projects', nargs='*', dest='projects', action='store',
+                           help='projects to build; if not given, all projects from config will be built')
+    argparser.add_argument('-c', '--config', dest='config', action='store',
+                           help='config file location')
+    args = argparser.parse_args()
+
+    logging.basicConfig(stream=sys.stderr, format='%(name)s: %(message)s')
+    if args.verbose:
+        log.setLevel(logging.DEBUG)
+        copr_log.setLevel(logging.DEBUG)
+    else:
+        log.setLevel(logging.INFO)
+        copr_log.setLevel(logging.INFO)
+
+    if not os.path.exists(args.config):
+        log.error('Config file "%s" not found.', args.config)
+        sys.exit(1)
+
+    builder = CoprBuilder(args.config)
+    suc = builder.do_builds(args.projects)
+
+    sys.exit(0 if suc else 1)
