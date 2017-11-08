@@ -36,6 +36,14 @@ class GitRepo(object):
 
         return out
 
+    def last_tag(self):
+        command = 'git tag -l --sort=taggerdate | tail -n 1'
+        ret, out = run_command(command, self.gitdir)
+        if ret != 0:
+            raise GitError('Failed to get last tag for %s:\n%s' % (self.repo_url, out))
+
+        return out
+
     def checkout(self, branch):
         command = 'git checkout %s' % branch
         ret, out = run_command(command, self.gitdir)
