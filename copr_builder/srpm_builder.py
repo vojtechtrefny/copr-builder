@@ -147,20 +147,20 @@ class SRPMBuilder(object):
         git_dir = self.git_repo.gitdir
         pkg_name = self.project_data[PACKAGE_CONF]
 
-        # copy source archive to rpmbuild/SOURCES
-        ret, rpmsource = run_command('rpm -E %_sourcedir')
-        if ret != 0:
-            raise SRPMBuilderError('Failed to get rpmbuild SOURCE directory location.')
-
-        shutil.copyfile('%s/%s' % (git_dir, archive),
-                        '%s/%s' % (rpmsource, archive))
+        # create 'packaging' directory in gitdir
+        rpmdir = os.path.join(self.git_dir, 'packaging')
+        if not os.path.exists(rpmdir):
+            os.mkdir(rpmdir)
 
         # build the srpm
-        command = 'rpmbuild -bs %s' % self.spec_file
+        data = {'srcdir': self.git_dir, 'rpmdir': rpmdir, 'spec': self.spec_file}
+        command = 'rpmbuild -bs --define "_sourcedir {srcdir}" --define "_specdir {rpmdir}"' \
+                  ' --define "_builddir {rpmdir}" --define "_srcrpmdir {rpmdir}"' \
+                  ' --define "_rpmdir {rpmdir}" {spec}'.format(**data)
         ret, out = run_command(command, git_dir)
 
         # remove the source archive, we no longer need it
-        os.remove(os.path.join(rpmsource, archive))
+        os.remove(os.path.join(self.git_dir, archive))
 
         if ret != 0:
             raise SRPMBuilderError('SPRM generation failed:\n %s' % out)
