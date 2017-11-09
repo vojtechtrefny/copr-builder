@@ -2,7 +2,6 @@ import glob
 import logging
 import os
 import re
-import shutil
 
 from . import GIT_URL_CONF, PACKAGE_CONF, ARCHIVE_CMD_CONF, GIT_BRANCH_CONF, GIT_MERGE_BRANCH_CONF, Version
 from .errors import SRPMBuilderError
@@ -15,20 +14,22 @@ log = logging.getLogger("copr.builder")
 
 class SRPMBuilder(object):
 
-    def __init__(self, project_data):
+    def __init__(self, project_data, git_dir=None):
 
         self.project_data = project_data
 
         self._spec_file = None
 
-        self.git_repo = GitRepo(project_data[GIT_URL_CONF])
-        self.git_repo.clone()
+        if git_dir is None:
+            self.git_repo = GitRepo(project_data[GIT_URL_CONF])
+            self.git_repo.clone()
+            self.git_dir = self.git_repo.gitdir
+        else:
+            os.chdir(git_dir)
+            self.git_dir = git_dir
+            self.git_repo = None
 
         self._log_prefix = 'Package %s:' % self.project_data[PACKAGE_CONF]
-
-    @property
-    def git_dir(self):
-        return self.git_repo.gitdir
 
     @property
     def spec_file(self):
@@ -89,7 +90,10 @@ class SRPMBuilder(object):
         log.debug('%s Spec version updated.', self._log_prefix)
 
     def prepare_build(self):
-        # checkout to the right branch
+        # checkout to the right branch if needed
+        if self.git_repo is None:
+            raise SRPMBuilderError('Prepare build called but GitRepo is not set.')
+
         self.git_repo.checkout(self.project_data[GIT_BRANCH_CONF])
 
         # and do the merge if we want to
@@ -144,7 +148,6 @@ class SRPMBuilder(object):
     def _make_srpm(self, archive):
         ''' Create SRPM using spec and source archive '''
 
-        git_dir = self.git_repo.gitdir
         pkg_name = self.project_data[PACKAGE_CONF]
 
         # create 'packaging' directory in gitdir
@@ -157,7 +160,7 @@ class SRPMBuilder(object):
         command = 'rpmbuild -bs --define "_sourcedir {srcdir}" --define "_specdir {rpmdir}"' \
                   ' --define "_builddir {rpmdir}" --define "_srcrpmdir {rpmdir}"' \
                   ' --define "_rpmdir {rpmdir}" {spec}'.format(**data)
-        ret, out = run_command(command, git_dir)
+        ret, out = run_command(command, self.git_dir)
 
         # remove the source archive, we no longer need it
         os.remove(os.path.join(self.git_dir, archive))
