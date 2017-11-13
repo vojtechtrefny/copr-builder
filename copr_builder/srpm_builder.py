@@ -102,6 +102,7 @@ class SRPMBuilder(object):
 
     def build(self):
         archive = self._make_archive()
+        self._set_source(archive)
         srpm = self._make_srpm(archive)
 
         return srpm
