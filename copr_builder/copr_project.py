@@ -132,10 +132,13 @@ class CoprProject(object):
     def _new_version(self, spec_version, copr_version, last_commit):
         '''Get new version based on current version in git and last build in Copr '''
 
+        # build version might be another "version" and int('0.1') results in ValueError
+        spec_build = int(spec_version.build.split('.')[0])
+
         if not copr_version:  # first build in copr
-            release = str(int(spec_version.build) + 1)
+            release = str(spec_build + 1)
         elif LooseVersion(spec_version.version) > LooseVersion(copr_version.version):
-            release = str(int(spec_version.build) + 1)
+            release = str(spec_build + 1)
         elif LooseVersion(spec_version.version) == LooseVersion(copr_version.version):
             release = str(int(copr_version.build) + 1)
         else:
