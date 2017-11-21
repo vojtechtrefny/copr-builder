@@ -68,10 +68,15 @@ class CoprBuilder(object):
         else:
             projects = self.config.sections()
 
+        copr_projects = []
+
         # generate srpms for projects in config
         for project in projects:
             try:
                 p = CoprProject(self.config[project], self.copr)
+                # XXX: save reference to the CoprProject instance to avoid
+                # automatic deletion of tempdir with the SRPM
+                copr_projects.append(p)
                 srpm = p.build_srpm()
                 if srpm:
                     srpms[project] = srpm
