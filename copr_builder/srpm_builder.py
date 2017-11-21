@@ -174,12 +174,23 @@ class SRPMBuilder(object):
 
         return srpm
 
+    def _glob_find(self, spec):
+        # XXX: search in current directory and subdirectories
+        res = glob.glob('%s/%s' % (self.git_dir, spec))
+        res.extend(glob.glob('%s/*/%s' % (self.git_dir, spec)))
+
+        return res
+
     def _locate_spec_file(self):
         ''' Try to find spec file for this project '''
 
-        # look for spec files in current directory and subdirectories
-        specs = glob.glob('%s/*.spec' % self.git_dir)
-        specs.extend(glob.glob('%s/*/*.spec' % self.git_dir))
+        # look for spec files
+        specs = self._glob_find('*.spec')
+
+        # try to look for .spec.in files too (when extracting last version
+        # before running autogen && configure)
+        if not specs:
+            specs = self._glob_find('*.spec.in')
 
         if not specs:
             raise SRPMBuilderError('Failed to find a spec file for %s.' % self.project_data[PACKAGE_CONF])
