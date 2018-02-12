@@ -33,7 +33,7 @@ class CoprBuilder(object):
 
     def _check_copr_token(self):
         if not os.path.isfile(COPR_CONFIG):
-            raise CoprBuilderError('Copr configuration file not found.')
+            raise CoprBuilderError('Copr configuration %s file not found.' % COPR_CONFIG)
 
         expiration = None
         with open(COPR_CONFIG, 'r') as f:
