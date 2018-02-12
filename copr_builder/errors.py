@@ -17,3 +17,7 @@ class CoprBuilderAlreadyFailed(CoprBuilderError):
 
 class CoprBuilderConfigurationError(CoprBuilderError):
     pass
+
+
+class CoprBuilderBrokenGitHash(CoprBuilderError):
+    pass
