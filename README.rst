@@ -31,6 +31,7 @@ Config file structure
   copr_repo = reponame
   package = mypackage
   git_url = https://github.com/<user>/mypackage
+  pre_archive_cmd = ./autogen.sh && ./configure
   archive_cmd = make local
   git_branch = 1.1-devel
   git_merge_branch = 1.1-release
@@ -47,6 +48,7 @@ Config file structure
 
   - a *spec* file must be in the repo
 
+- **pre_archive_cmd** -- command which will be run before the spec file is read. This can be used to generate or download spec file.
 - **archive_cmd** -- command for creating archive from the source (e.g. "make local" or "git archive HEAD --prefix=package/ -o package.tar.gz")
 
   - this command must create a single archive (*.tar.[gz|bz|bz2|xz]*) in the current directory
