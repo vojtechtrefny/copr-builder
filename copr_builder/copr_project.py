@@ -5,7 +5,8 @@ from distutils.version import LooseVersion
 from copr.client_v2.common import BuildStateValues
 
 from . import PACKAGE_CONF, COPR_USER_CONF, COPR_REPO_CONF, GIT_URL_CONF, ARCHIVE_CMD_CONF, Version
-from .errors import CoprBuilderError, CoprBuilderConfigurationError, CoprBuilderAlreadyFailed
+from .errors import CoprBuilderError, CoprBuilderConfigurationError, CoprBuilderAlreadyFailed, \
+    CoprBuilderBrokenGitHash
 from .srpm_builder import SRPMBuilder
 
 
@@ -62,13 +63,19 @@ class CoprProject(object):
 
         # check if we actually need to do the build -- check version and last commit
         last_commit = self.srpm_builder.git_repo.last_commit()
-        if last_build:
-            package_version = self._get_package_version(last_build)
-            last_version = self._extract_version(package_version)
-        else:
+
+        try:
+            if last_build:
+                package_version = self._get_package_version(last_build)
+                last_version = self._extract_version(package_version)
+            else:
+                last_version = None
+        except CoprBuilderBrokenGitHash:
+            log.warning('%s Can\'t read git hash from the last build. Skipping check and sending '
+                        'a new build.', self._log_prefix)
             last_version = None
 
-        if last_build and last_commit == last_version.git_hash:
+        if last_build and last_version and last_commit == last_version.git_hash:
             if last_build.state == BuildStateValues.FAILED:
                 date = datetime.date.fromtimestamp(last_build.submitted_on).isoformat()
                 log.error('%s Build of the newest version (git hash: %s) was already submitted on '
@@ -97,7 +104,11 @@ class CoprProject(object):
         version, build = version_str.split('-')
         # ignore the dist part (we don't need it and it is not part of the version for newer builds)
         build_num, git = build.split('.')[:2]
-        datestr, git_hash = git.split('git')
+        git_split = git.split('git')
+        if len(git_split) != 2:
+            raise CoprBuilderBrokenGitHash("Git hash can't be found in previous build")
+
+        datestr, git_hash = git_split
 
         return Version(version, build_num, datestr, git_hash)
 
