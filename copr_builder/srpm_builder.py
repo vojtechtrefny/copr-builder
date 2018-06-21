@@ -20,6 +20,7 @@ class SRPMBuilder(object):
         self.project_data = project_data
 
         self._spec_file = None
+        self._spec_version = None
 
         if git_dir is None:
             self.git_repo = GitRepo(project_data[GIT_URL_CONF])
@@ -67,6 +68,13 @@ class SRPMBuilder(object):
 
     @spec_version.setter
     def spec_version(self, new_version):
+        ''' Set spec version
+
+        Will be used in the update_spec() method.
+        '''
+        self._spec_version = new_version
+
+    def update_spec(self):
         ''' Update version in spec file so the build number is always higher '''
 
         spec_file = self._locate_spec_file()
@@ -76,11 +84,11 @@ class SRPMBuilder(object):
         with open(spec_file, 'r') as f:
             for line in f:
                 if line.startswith('Version:'):
-                    new_spec.append('Version: %s\n' % new_version.version)
+                    new_spec.append('Version: %s\n' % self._spec_version.version)
                 elif line.startswith('Release:'):
-                    new_spec.append('Release: %s.%sgit%s%%{?dist}\n' % (new_version.build,
-                                                                        new_version.date,
-                                                                        new_version.git_hash))
+                    new_spec.append('Release: %s.%sgit%s%%{?dist}\n' % (self._spec_version.build,
+                                                                        self._spec_version.date,
+                                                                        self._spec_version.git_hash))
                 else:
                     new_spec.append(line)
 
