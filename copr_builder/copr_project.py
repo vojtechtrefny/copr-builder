@@ -91,6 +91,7 @@ class CoprProject(object):
 
         # make srpm
         srpm = self.srpm_builder.build()
+        self.srpm_builder.update_spec()
         return srpm
 
     def _extract_version(self, version_str):
