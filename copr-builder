@@ -20,6 +20,8 @@ if __name__ == '__main__':
                            help='projects to build; if not given, all projects from config will be built')
     argparser.add_argument('-c', '--config', dest='config', action='store',
                            help='config file location')
+    argparser.add_argument('-C', '--copr-config', dest='copr_config', action='store',
+                           help='Copr config file location (defaults to "~/.config/copr")')
     args = argparser.parse_args()
 
     logging.basicConfig(stream=sys.stderr, format='%(name)s: %(message)s')
@@ -34,7 +36,11 @@ if __name__ == '__main__':
         log.error('Config file "%s" not found.', args.config)
         sys.exit(1)
 
-    builder = CoprBuilder(args.config)
+    if args.copr_config and not os.path.exists(args.copr_config):
+        log.error('Copr config file "%s" not found.', args.copr_config)
+        sys.exit(1)
+
+    builder = CoprBuilder(args.config, args.copr_config)
     suc = builder.do_builds(args.projects)
 
     sys.exit(0 if suc else 1)

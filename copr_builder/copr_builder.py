@@ -14,7 +14,7 @@ from .errors import CoprBuilderError, CoprBuilderAlreadyFailed
 from .copr_project import CoprProject
 
 
-BUILD_URL_TEMPLATE = "https://copr.fedorainfracloud.org/coprs/%s/%s/build/%s"
+BUILD_URL_TEMPLATE = "%s/coprs/%s/%s/build/%s"
 COPR_CONFIG = os.path.expanduser('~/.config/copr')
 
 
@@ -23,20 +23,22 @@ log = logging.getLogger("copr.builder")
 
 class CoprBuilder(object):
 
-    def __init__(self, conf_file):
+    def __init__(self, conf_file, copr_config=COPR_CONFIG):
 
         self.config = configparser.ConfigParser()
         self.config.read(conf_file)
 
+        self.copr_config = copr_config
+
         self._check_copr_token()
-        self.copr = copr.create_client2_from_file_config()
+        self.copr = copr.create_client2_from_file_config(filepath=self.copr_config)
 
     def _check_copr_token(self):
-        if not os.path.isfile(COPR_CONFIG):
-            raise CoprBuilderError('Copr configuration %s file not found.' % COPR_CONFIG)
+        if not os.path.isfile(self.copr_config):
+            raise CoprBuilderError('Copr configuration %s file not found.' % self.copr_config)
 
         expiration = None
-        with open(COPR_CONFIG, 'r') as f:
+        with open(self.copr_config, 'r') as f:
             for line in f:
                 if line.startswith('# expiration date:'):
                     try:
@@ -51,8 +53,8 @@ class CoprBuilder(object):
 
         if expiration < datetime.datetime.now():
             raise CoprBuilderError('Your Copr token has expired. Expiration date: %s. '
-                                   'Please obtain new at https://copr.fedorainfracloud.org/api/ '
-                                   'and save it to %s.' % (expiration.strftime("%Y-%m-%d"), COPR_CONFIG))
+                                   'Please obtain new at %s/api/ and save it '
+                                   'to %s.' % (self.copr.root_url, expiration.strftime("%Y-%m-%d"), self.copr_config))
 
     def _check_projects_input(self, projects):
         wrong = [p for p in projects if p not in self.config.sections()]
@@ -110,9 +112,9 @@ class CoprBuilder(object):
     def _get_copr_url(self, copr_user, copr_repo, build_id):
         if copr_user.startswith('@'):
             # for groups, the '@' symbol is replaced by 'g/'
-            return BUILD_URL_TEMPLATE % ('g/' + copr_user[1:], copr_repo, build_id)
+            return BUILD_URL_TEMPLATE % (self.copr.root_url, 'g/' + copr_user[1:], copr_repo, build_id)
         else:
-            return BUILD_URL_TEMPLATE % (copr_user, copr_repo, build_id)
+            return BUILD_URL_TEMPLATE % (self.copr.root_url, copr_user, copr_repo, build_id)
 
     def _do_copr_build(self, project, srpm):
         copr_user = self.config[project][COPR_USER_CONF]
