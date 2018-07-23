@@ -23,12 +23,12 @@ log = logging.getLogger("copr.builder")
 
 class CoprBuilder(object):
 
-    def __init__(self, conf_file, copr_config=COPR_CONFIG):
+    def __init__(self, conf_file, copr_config=None):
 
         self.config = configparser.ConfigParser()
         self.config.read(conf_file)
 
-        self.copr_config = copr_config
+        self.copr_config = copr_config or COPR_CONFIG
 
         self._check_copr_token()
         self.copr = copr.create_client2_from_file_config(filepath=self.copr_config)
@@ -53,8 +53,8 @@ class CoprBuilder(object):
 
         if expiration < datetime.datetime.now():
             raise CoprBuilderError('Your Copr token has expired. Expiration date: %s. '
-                                   'Please obtain new at %s/api/ and save it '
-                                   'to %s.' % (self.copr.root_url, expiration.strftime("%Y-%m-%d"), self.copr_config))
+                                   'Please obtain new and save it to %s.' % (expiration.strftime("%Y-%m-%d"),
+                                                                             self.copr_config))
 
     def _check_projects_input(self, projects):
         wrong = [p for p in projects if p not in self.config.sections()]
