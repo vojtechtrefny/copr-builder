@@ -20,6 +20,7 @@ class SRPMBuilder(object):
         self.project_data = project_data
 
         self._spec_file = None
+        self._archive = None
 
         if git_dir is None:
             self.git_repo = GitRepo(project_data[GIT_URL_CONF])
@@ -37,6 +38,17 @@ class SRPMBuilder(object):
         if self._spec_file is None:
             self._spec_file = self._locate_spec_file()
         return self._spec_file
+
+    @property
+    def archive(self):
+        ''' Return path to the created archive
+
+        To create archive look on self.make_archive.
+
+        :returns: Archive path or None if archive wasn't created yet.
+        :rtype: str or None
+        '''
+        return self._archive
 
     @property
     def spec_version(self):
@@ -118,10 +130,14 @@ class SRPMBuilder(object):
         if ret != 0:
             raise SRPMBuilderError('Failed to run prepare archive commands for %s:\n%s' % (self.project_data[PACKAGE_CONF], out))
 
+    def make_archive(self):
+        self._archive = self._make_archive()
+        self._set_source(self._archive)
+
     def build(self):
-        archive = self._make_archive()
-        self._set_source(archive)
-        srpm = self._make_srpm(archive)
+        if self._archive is None:
+            raise ValueError('You must create archive first!')
+        srpm = self._make_srpm(self._archive)
 
         return srpm
 

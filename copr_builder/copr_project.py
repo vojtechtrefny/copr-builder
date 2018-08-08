@@ -85,6 +85,8 @@ class CoprProject(object):
                 log.info('%s Newest version is already built (git hash: %s).', self._log_prefix, last_commit)
                 return None
 
+        self.srpm_builder.make_archive()
+
         # update version in spec file
         self.srpm_builder.spec_version = self._new_version(self.srpm_builder.spec_version,
                                                            last_version, last_commit)
