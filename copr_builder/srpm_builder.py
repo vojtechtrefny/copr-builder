@@ -20,7 +20,7 @@ class SRPMBuilder(object):
         self.project_data = project_data
 
         self._spec_file = None
-        self._archive = None
+        self._archives = None
 
         if git_dir is None:
             self.git_repo = GitRepo(project_data[GIT_URL_CONF])
@@ -40,15 +40,15 @@ class SRPMBuilder(object):
         return self._spec_file
 
     @property
-    def archive(self):
-        ''' Return path to the created archive
+    def archives(self):
+        ''' Return path to the created source archives
 
         To create archive look on self.make_archive.
 
-        :returns: Archive path or None if archive wasn't created yet.
+        :returns: Archive paths or None if archives weren't created yet.
         :rtype: str or None
         '''
-        return self._archive
+        return self._archives
 
     @property
     def spec_version(self):
@@ -131,25 +131,30 @@ class SRPMBuilder(object):
             raise SRPMBuilderError('Failed to run prepare archive commands for %s:\n%s' % (self.project_data[PACKAGE_CONF], out))
 
     def make_archive(self):
-        self._archive = self._make_archive()
-        self._set_source(self._archive)
+        self._archives = self._make_archive()
+        self._set_source(self._archives)
 
     def build(self):
-        if self._archive is None:
+        if self._archives is None:
             raise ValueError('You must create archive first!')
-        srpm = self._make_srpm(self._archive)
+        srpm = self._make_srpm(self._archives)
 
         return srpm
 
-    def _set_source(self, archive_name):
+    def _set_source(self, archive_names):
         spec_file = self._locate_spec_file()
 
         new_spec = []
 
         with open(spec_file, 'r') as f:
             for line in f:
-                if line.startswith('Source0:'):
-                    new_spec.append('Source0: %s\n' % archive_name)
+                if line.startswith('Source'):
+                    # only works for < 10 sources
+                    source_num = int(line[6])
+                    if len(archive_names) < source_num + 1:
+                        raise SRPMBuilderError('Found Source%d in SPEC, but only %d sources generated.' % (source_num, len(archive_names)))
+                    new_spec.append('Source%d: %s\n' % (source_num,
+                                                        archive_names[source_num]))
                 else:
                     new_spec.append(line)
 
@@ -170,17 +175,15 @@ class SRPMBuilder(object):
             raise SRPMBuilderError('Failed to create source archive for %s:\n%s' % (self.project_data[PACKAGE_CONF], out))
 
         # archive should be created, get everything that looks like one
-        archives = [f for f in os.listdir(self.git_dir) if re.match(r'.*\.tar\.(gz|bz|bz2|xz)$', f)]
+        archives = [f for f in reversed(os.listdir(self.git_dir)) if re.match(r'.*\.tar\.(gz|bz|bz2|xz)$', f)]
         if not archives:
             raise SRPMBuilderError('Failed to find source archive after creating it.')
-        if len(archives) > 1:
-            raise SRPMBuilderError('Found more than one file that looks like source archive.')
 
-        log.debug('%s Created source archive: %s', self._log_prefix, archives[0])
+        log.debug('%s Created source archives: %s', self._log_prefix, archives)
 
-        return archives[0]
+        return archives
 
-    def _make_srpm(self, archive):
+    def _make_srpm(self, archives):
         ''' Create SRPM using spec and source archive '''
 
         pkg_name = self.project_data[PACKAGE_CONF]
@@ -197,8 +200,9 @@ class SRPMBuilder(object):
                   ' --define "_rpmdir {rpmdir}" {spec}'.format(**data)
         ret, out = run_command(command, self.git_dir)
 
-        # remove the source archive, we no longer need it
-        os.remove(os.path.join(self.git_dir, archive))
+        # remove the source archives, we no longer need it
+        for archive in archives:
+            os.remove(os.path.join(self.git_dir, archive))
 
         if ret != 0:
             raise SRPMBuilderError('SPRM generation failed:\n %s' % out)
