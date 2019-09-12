@@ -149,7 +149,7 @@ class CoprBuilder(object):
 
         while builds:
             for build in builds:
-                b = build._handle.get_one(build.id)
+                b = build._handle.get_one(build.id)  # pylint: disable=protected-access
                 if b.state in (BuildStateValues.SKIPPED, BuildStateValues.FAILED,
                                BuildStateValues.SUCCEEDED, BuildStateValues.CANCELED):
                     log.info('Build of %s-%s (ID: %s) finished: %s',
