@@ -1,3 +1,6 @@
+.. image:: https://travis-ci.com/vojtechtrefny/copr-builder.svg?branch=master
+    :target: https://travis-ci.com/vojtechtrefny/copr-builder
+
 Copr Builder
 ============
 
