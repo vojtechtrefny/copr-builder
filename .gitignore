@@ -11,4 +11,7 @@ _build
 
 *~
 
+pylint-log
+tests/pylint/.pylint.d
+
 example.conf
