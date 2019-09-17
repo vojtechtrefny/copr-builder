@@ -27,6 +27,16 @@ class CoprProject(object):
 
         self.srpm_builder = SRPMBuilder(self.project_data)
 
+        # get the Copr project
+        plist = self.copr_client.projects.get_list(owner=self.project_data[COPR_USER_CONF],
+                                                   name=self.project_data[COPR_REPO_CONF])
+        if len(plist.projects) != 1:
+            raise CoprBuilderError('Expected to found exactly one Copr project for %s/%s '
+                                   'but found %d' % (self.project_data[COPR_USER_CONF],
+                                                     self.project_data[COPR_REPO_CONF],
+                                                     len(plist.projects)))
+        self.copr_project = plist.projects[0]
+
     def _test_required_config_values(self):
         ''' Test if all required configuration values are set properly. '''
         for conf in [PACKAGE_CONF, COPR_USER_CONF, COPR_REPO_CONF, GIT_URL_CONF, ARCHIVE_CMD_CONF]:
@@ -47,6 +57,30 @@ class CoprProject(object):
 
         else:
             raise CoprBuilderError('Cannot extract version from last build. ID: %s' % build.id)
+
+    def _get_project_chroots(self):
+        chroots = self.copr_project.get_project_chroot_list()
+        return set(chroot.name for chroot in chroots)
+
+    def _get_build_chroots(self, build):
+        tasks = build.get_build_tasks()
+        return set(task.chroot_name for task in tasks)
+
+    def _get_chroots_diff_message(self, project, build):
+        ret = ''
+        in_project = project - build
+        in_build = build - project
+
+        if in_project:
+            ret += 'New chroots in project:'
+            for chroot in in_project:
+                ret += ' %s' % chroot
+        if in_build:
+            ret += 'Chroots in last build no longer in project:'
+            for chroot in in_build:
+                ret += ' %s' % chroot
+
+        return ret
 
     def build_srpm(self):
         ''' Build an SRPM package for this project
@@ -76,14 +110,24 @@ class CoprProject(object):
             last_version = None
 
         if last_build and last_version and last_commit == last_version.git_hash:
-            if last_build.state == BuildStateValues.FAILED:
-                date = datetime.date.fromtimestamp(last_build.submitted_on).isoformat()
-                log.error('%s Build of the newest version (git hash: %s) was already submitted on '
-                          '%s but it failed.', self._log_prefix, last_version.git_hash, date)
-                raise CoprBuilderAlreadyFailed
+            proj_chroots = self._get_project_chroots()
+            last_chroots = self._get_build_chroots(last_build)
+
+            if proj_chroots != last_chroots:
+                # always try to rebuild if there is a change in chroots
+                log.info('%s Newest version is already built (git hash: %s) but there are different chroots '
+                         'enabled for the project -- building anyway.', self._log_prefix, last_commit)
+                chroots_diff = self._get_chroots_diff_message(proj_chroots, last_chroots)
+                log.debug('%s %s', self._log_prefix, chroots_diff)
             else:
-                log.info('%s Newest version is already built (git hash: %s).', self._log_prefix, last_commit)
-                return None
+                if last_build.state == BuildStateValues.FAILED:
+                    date = datetime.date.fromtimestamp(last_build.submitted_on).isoformat()
+                    log.error('%s Build of the newest version (git hash: %s) was already submitted on '
+                              '%s but it failed.', self._log_prefix, last_version.git_hash, date)
+                    raise CoprBuilderAlreadyFailed
+                else:
+                    log.info('%s Newest version is already built (git hash: %s).', self._log_prefix, last_commit)
+                    return None
 
         self.srpm_builder.make_archive()
 
@@ -118,18 +162,10 @@ class CoprProject(object):
         ''' Get last package build built in Copr for this project '''
 
         copr_user = self.project_data[COPR_USER_CONF]
-        copr_repo = self.project_data[COPR_REPO_CONF]
         copr_package = self.project_data[PACKAGE_CONF]
 
-        # get the project to extract project id
-        plist = self.copr_client.projects.get_list(owner=copr_user, name=copr_repo)
-        if len(plist.projects) != 1:
-            raise CoprBuilderError('Expected to found exactly one Copr project for %s/%s '
-                                   'but found %d' % (copr_user, copr_repo, len(plist.projects)))
-        pid = plist.projects[0].id
-
         # get list of builds for this Copr project
-        all_builds = self.copr_client.builds.get_list(owner=copr_user, project_id=pid)
+        all_builds = self.copr_client.builds.get_list(owner=copr_user, project_id=self.copr_project.id)
         project_builds = [b for b in all_builds if b.package_name == copr_package and
                           b.state not in (BuildStateValues.SKIPPED, BuildStateValues.CANCELED)]
         if len(project_builds) == 0:
