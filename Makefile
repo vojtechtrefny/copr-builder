@@ -15,6 +15,10 @@ check:
 	$(MAKE) pep8 || status=1; \
 	exit $$status
 
+test:
+	@echo "*** Running tests ***"
+	@python3 -m pytest
+
 clean:
 	-@rm -f copr_builder/*.pyc
 	-@rm -rf dist copr_builder.egg-info pylint-log build
