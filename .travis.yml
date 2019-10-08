@@ -2,9 +2,11 @@ language: python
 
 install:
   - pip3 install -r requirements.txt
-  - pip3 install pylint pycodestyle pocketlint
+  - pip3 install pylint pycodestyle pocketlint pytest
 
-script: make check
+script:
+  - make check
+  - make test
 
 branches:
   only:
