@@ -8,6 +8,10 @@ from .errors import GitError
 log = logging.getLogger("copr.builder")
 
 
+# username used for git merge
+GIT_USER = "CoprBuilderBot"
+
+
 class GitRepo(object):
 
     def __init__(self, repo_url):
@@ -29,7 +33,8 @@ class GitRepo(object):
         self.gitdir = self.tempdir.name + '/' + subdirs[0]
 
     def last_commit(self, short=True):
-        command = 'git log --no-merges --pretty=format:\'%%%s\' -n 1' % 'h' if short else 'H'
+        command = 'git log --perl-regexp --author=\'^((?!%s).*)$\' --pretty=format:\'%%%s\' -n 1' % ('h' if short else 'H',
+                                                                                                     GIT_USER)
         ret, out = run_command(command, self.gitdir)
         if ret != 0:
             raise GitError('Failed to get last commit hash for %s:\n%s' % (self.repo_url, out))
@@ -52,8 +57,8 @@ class GitRepo(object):
 
     def merge(self, branch):
         # we need to set username and email to make git happy before merging
-        command = 'git config user.email "jenkins@example.com" && '\
-                  'git config user.name "Jenkins"'
+        command = 'git config user.email "%s@example.com" && '\
+                  'git config user.name "%s"' % (GIT_USER.lower(), GIT_USER)
         ret, out = run_command(command, self.gitdir)
         if ret != 0:
             raise GitError('Failed to set username and email before merging.\n%s' % out)
