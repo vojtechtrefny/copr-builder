@@ -29,7 +29,7 @@ class GitRepo(object):
         self.gitdir = self.tempdir.name + '/' + subdirs[0]
 
     def last_commit(self, short=True):
-        command = 'git log --no-merges --pretty=format:\'%%%s\' -n 1' % 'h' if short else 'H'
+        command = 'git log --perl-regexp --author=\'^((?!Jenkins).*)$\' --pretty=format:\'%%%s\' -n 1' % 'h' if short else 'H'
         ret, out = run_command(command, self.gitdir)
         if ret != 0:
             raise GitError('Failed to get last commit hash for %s:\n%s' % (self.repo_url, out))
