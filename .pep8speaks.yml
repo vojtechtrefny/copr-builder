@@ -1,0 +1,10 @@
+scanner:
+    diff_only: False
+    linter: pycodestyle
+
+pycodestyle:
+    max-line-length: 100
+    ignore:
+        - W504  # line break after binary operator
+        - E501  # line too long
+        - E731  # do not assign a lambda expression, use a def
