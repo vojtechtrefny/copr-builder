@@ -20,7 +20,6 @@ COPR_CONFIG = os.path.expanduser('~/.config/copr')
 
 log = logging.getLogger("copr.builder")
 
-
 class CoprBuilder(object):
 
     def __init__(self, conf_file, copr_config=None):
