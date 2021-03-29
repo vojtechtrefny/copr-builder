@@ -131,7 +131,7 @@ class CoprBuilder(object):
         try:
             build = copr_project.create_build_from_file(srpm)
         except RequestError as e:
-            raise CoprBuilderError('Failed to create build: %s' % str(e))
+            raise CoprBuilderError('Failed to create build') from e
 
         log.info('Started Copr build of %s (ID: %s)', srpm, build.id)
         log.info('Build URL: %s', self._get_copr_url(copr_user, copr_repo, build.id))
