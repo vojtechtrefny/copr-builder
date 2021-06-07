@@ -18,5 +18,4 @@ setup(name='copr-builder',
       author_email='vtrefny@redhat.com',
       url='https://github.com/vojtechtrefny/copr-builder',
       packages=['copr_builder'],
-      scripts=['copr-builder'],
-     )
+      scripts=['copr-builder'])
