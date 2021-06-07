@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+import setuptools  # pylint: disable=unused-import
+
 from distutils.core import setup
 
 setup(name='copr-builder',
