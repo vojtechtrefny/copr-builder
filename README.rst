@@ -25,7 +25,7 @@ Usage
                           config file location
 
 Config file structure
---------------------
+---------------------
 
 ::
 
