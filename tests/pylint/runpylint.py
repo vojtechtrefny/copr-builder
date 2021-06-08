@@ -12,7 +12,8 @@ class CoprBuilderSetupLintConfig(PocketLintConfig):
         # both happens only in travis, see https://github.com/PyCQA/pylint/issues/73
         self.falsePositives = [FalsePositive(r"No name '(core|version)' in module 'distutils'"),
                                FalsePositive(r"Unable to import 'distutils\.(core|version)'"),
-                               FalsePositive(r"test_.*: Access to a protected member")]
+                               FalsePositive(r"test_.*: Access to a protected member"),
+                               FalsePositive(r"Instance of 'List' has no '(id|state|name|source_package)' member")]
 
     @property
     def pylintPlugins(self):
