@@ -4,7 +4,7 @@
 Copr Builder
 ============
 
-A simple program for building projects from Git repository in Copr.
+A simple program for building RPM packages from Git repositories in `Copr <https://copr.fedorainfracloud.org/>`_.
 
 Usage
 -----
@@ -25,7 +25,7 @@ Usage
                           config file location
 
 Config file structure
---------------------
+---------------------
 
 ::
 
