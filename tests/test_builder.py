@@ -3,7 +3,7 @@ import tempfile
 from contextlib import contextmanager
 from datetime import date
 
-import copr
+from copr.v3 import Client
 
 from copr_builder.copr_builder import CoprBuilder
 from copr_builder.errors import CoprBuilderError
@@ -48,7 +48,7 @@ def prepare_config_files():
 
 
 def test_token_checking(monkeypatch):
-    monkeypatch.setattr(copr, "create_client2_from_file_config", lambda filepath: None)
+    monkeypatch.setattr(Client, "create_from_config_file", lambda path: None)
 
     today = date.today()
 
@@ -66,7 +66,7 @@ def test_token_checking(monkeypatch):
 
 
 def test_config_parsing(monkeypatch):
-    monkeypatch.setattr(copr, "create_client2_from_file_config", lambda filepath: None)
+    monkeypatch.setattr(Client, "create_from_config_file", lambda path: None)
     today = date.today()
 
     with prepare_config_files() as (builder_file, copr_file):
