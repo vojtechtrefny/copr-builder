@@ -36,7 +36,7 @@ class CoprBuilder(object):
             raise CoprBuilderError('Copr configuration %s file not found.' % self.copr_config)
 
         expiration = None
-        with open(self.copr_config, 'r') as f:
+        with open(self.copr_config, 'r', encoding='utf-8') as f:
             for line in f:
                 if line.startswith('# expiration date:'):
                     try:

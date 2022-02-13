@@ -58,7 +58,7 @@ class SRPMBuilder(object):
         release = None
         spec = self._locate_spec_file()
 
-        with open(spec, 'r') as f:
+        with open(spec, 'r', encoding='utf-8') as f:
             for line in f:
                 if line.startswith('Version:'):
                     version = line.split('Version:')[1].strip()
@@ -85,7 +85,7 @@ class SRPMBuilder(object):
 
         new_spec = []
 
-        with open(spec_file, 'r') as f:
+        with open(spec_file, 'r', encoding='utf-8') as f:
             for line in f:
                 if line.startswith('Version:'):
                     new_spec.append('Version: %s\n' % new_version.version)
@@ -96,7 +96,7 @@ class SRPMBuilder(object):
                 else:
                     new_spec.append(line)
 
-        with open(spec_file, 'w') as f:
+        with open(spec_file, 'w', encoding='utf-8') as f:
             for line in new_spec:
                 f.write(line)
 
@@ -146,7 +146,7 @@ class SRPMBuilder(object):
 
         new_spec = []
 
-        with open(spec_file, 'r') as f:
+        with open(spec_file, 'r', encoding='utf-8') as f:
             for line in f:
                 if line.startswith('Source'):
                     # only works for < 10 sources
@@ -158,7 +158,7 @@ class SRPMBuilder(object):
                 else:
                     new_spec.append(line)
 
-        with open(spec_file, 'w') as f:
+        with open(spec_file, 'w', encoding='utf-8') as f:
             for line in new_spec:
                 f.write(line)
 
