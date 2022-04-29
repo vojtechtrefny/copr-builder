@@ -1,8 +1,8 @@
 import datetime
 import logging
+import packaging
 
 from copr.v3 import CoprNoResultException
-from packaging.version import Version
 
 from . import PACKAGE_CONF, COPR_USER_CONF, COPR_REPO_CONF, GIT_URL_CONF, ARCHIVE_CMD_CONF, Version
 from .errors import CoprBuilderError, CoprBuilderConfigurationError, CoprBuilderAlreadyFailed, \
@@ -170,9 +170,9 @@ class CoprProject(object):
 
         if not copr_version:  # first build in copr
             release = str(spec_build + 1)
-        elif Version(spec_version.version) > Version(copr_version.version):
+        elif packaging.version.Version(spec_version.version) > packaging.version.Version(copr_version.version):
             release = str(spec_build + 1)
-        elif Version(spec_version.version) == Version(copr_version.version):
+        elif packaging.version.Version(spec_version.version) == packaging.version.Version(copr_version.version):
             release = str(int(copr_version.build) + 1)
         else:
             raise CoprBuilderError('Version from spec is older than last build in Copr')
