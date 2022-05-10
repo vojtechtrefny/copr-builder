@@ -4,7 +4,7 @@ import os
 import re
 
 from . import GIT_URL_CONF, PACKAGE_CONF, PRE_ARCHIVE_CMD_CONF, ARCHIVE_CMD_CONF, GIT_BRANCH_CONF, \
-    GIT_MERGE_BRANCH_CONF, Version
+    GIT_MERGE_BRANCH_CONF, CoprBuilderVersion
 from .errors import SRPMBuilderError
 from .git_repo import GitRepo
 from .utils import run_command
@@ -75,7 +75,7 @@ class SRPMBuilder(object):
 
         log.debug('%s Spec version: %s-%s', self._log_prefix, version, release)
 
-        return Version(version, release, None, None)
+        return CoprBuilderVersion(version, release, None, None)
 
     @spec_version.setter
     def spec_version(self, new_version):

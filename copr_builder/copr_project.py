@@ -4,7 +4,7 @@ import packaging
 
 from copr.v3 import CoprNoResultException
 
-from . import PACKAGE_CONF, COPR_USER_CONF, COPR_REPO_CONF, GIT_URL_CONF, ARCHIVE_CMD_CONF, Version
+from . import PACKAGE_CONF, COPR_USER_CONF, COPR_REPO_CONF, GIT_URL_CONF, ARCHIVE_CMD_CONF, CoprBuilderVersion
 from .errors import CoprBuilderError, CoprBuilderConfigurationError, CoprBuilderAlreadyFailed, \
     CoprBuilderBrokenGitHash
 from .srpm_builder import SRPMBuilder
@@ -138,7 +138,7 @@ class CoprProject(object):
 
         datestr, git_hash = git_split
 
-        return Version(version, build_num, datestr, git_hash)
+        return CoprBuilderVersion(version, build_num, datestr, git_hash)
 
     def _get_last_build(self):
         ''' Get last package build built in Copr for this project '''
@@ -181,4 +181,4 @@ class CoprProject(object):
 
         log.debug('%s New version: %s-%s.%sgit%s', self._log_prefix, spec_version.version, release, date, last_commit)
 
-        return Version(spec_version.version, release, date, last_commit)
+        return CoprBuilderVersion(spec_version.version, release, date, last_commit)
