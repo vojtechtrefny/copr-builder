@@ -10,4 +10,4 @@ PRE_ARCHIVE_CMD_CONF = 'pre_archive_cmd'
 ARCHIVE_CMD_CONF = 'archive_cmd'
 
 
-Version = namedtuple('Version', ['version', 'build', 'date', 'git_hash'])
+CoprBuilderVersion = namedtuple('CoprBuilderVersion', ['version', 'build', 'date', 'git_hash'])
