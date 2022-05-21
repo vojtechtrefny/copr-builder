@@ -1,6 +1,8 @@
 APPNAME=copr-builder
 VERSION=$(shell python3 setup.py --version)
 
+all:
+
 pylint:
 	@echo "*** Running pylint ***"
 	@PYTHONPATH=. python3 tests/pylint/runpylint.py
@@ -22,12 +24,18 @@ release: tag archive
 archive:
 	@git archive --format=tar --prefix=$(APPNAME)-$(VERSION)/ $(VERSION) | tar -xf -
 	@( cd $(APPNAME)-$(VERSION) && python3 setup.py -q sdist --dist-dir .. )
+	@rm -rf $(APPNAME)-$(VERSION)
+	@echo "The archive is in $(APPNAME)-$(VERSION).tar.gz"
+
+local:
+	@python3 setup.py -q sdist --dist-dir .
 	@echo "The archive is in $(APPNAME)-$(VERSION).tar.gz"
 
 bumpver:
 	@NEWSUBVER=$$((`echo $(VERSION) | cut -d . -f 2` + 1)) ; \
 	NEWVERSION=`echo $(VERSION).$$NEWSUBVER | cut -d . -f 1,3` ; \
 	sed -i "s/version='$(VERSION)'/version='$$NEWVERSION'/" setup.py ; \
+	sed -i "s/Version:   $(VERSION)/Version:   $$NEWVERSION/" copr-builder.spec ; \
 
 check:
 	@status=0; \
