@@ -149,12 +149,26 @@ class SRPMBuilder(object):
         with open(spec_file, 'r', encoding='utf-8') as f:
             for line in f:
                 if line.startswith('Source'):
-                    # only works for < 10 sources
-                    source_num = int(line[6])
-                    if len(archive_names) < source_num + 1:
-                        raise SRPMBuilderError('Found Source%d in SPEC, but only %d sources generated.' % (source_num, len(archive_names)))
-                    new_spec.append('Source%d: %s\n' % (source_num,
-                                                        archive_names[source_num]))
+                    m = re.search(r"Source([0-9]+):\s+(\S+)", line)
+                    if not m or len(m.groups()) != 2:
+                        raise SRPMBuilderError('Failed to parse Source line: %s' % line)
+
+                    source_num = int(m.groups()[0])
+                    source_name = m.groups()[1]
+
+                    if source_name in os.listdir(self.git_dir):
+                        # this source is already present in the git directory, we can just add it as is
+                        new_spec.append('Source%d: %s\n' % (source_num, source_name))
+                    else:
+                        # try adding a next archive we generated in `make_archive`
+                        try:
+                            archive_name = archive_names.pop(0)
+                        except IndexError:
+                            # pylint: disable=raise-missing-from
+                            raise SRPMBuilderError('Found Source%d in SPEC, but only %d sources generated.' % (source_num,
+                                                                                                               len(archive_names)))
+                        new_spec.append('Source%d: %s\n' % (source_num,
+                                                            archive_name))
                 else:
                     new_spec.append(line)
 
