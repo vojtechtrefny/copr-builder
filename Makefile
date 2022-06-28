@@ -5,7 +5,7 @@ all:
 
 pylint:
 	@echo "*** Running pylint ***"
-	@PYTHONPATH=. python3 tests/pylint/runpylint.py
+	@python3 -m pylint copr_builder/ copr-builder tests/ --disable=C,R,W0511,W0212 --score=no
 
 pep8:
 	@echo "*** Running pycodestyle compliance check ***"

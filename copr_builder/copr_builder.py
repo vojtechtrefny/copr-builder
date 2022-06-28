@@ -131,12 +131,14 @@ class CoprBuilder(object):
         except CoprRequestException as e:
             raise CoprBuilderError('Failed to create build') from e
 
+        # pylint: disable=no-member
         log.info('Started Copr build of %s (ID: %s)', srpm, build.id)
         log.info('Build URL: %s', self._get_copr_url(copr_user, copr_repo, build.id))
 
         return build.id
 
     def _print_chroot_states(self, build):
+        # pylint: disable=no-member
         chroots = sorted(build.chroots)
         for chroot in chroots:
             task = self.copr.build_chroot_proxy.get(build_id=build.id, chrootname=chroot)
@@ -145,6 +147,7 @@ class CoprBuilder(object):
     def _watch_builds(self, build_ids):
         success = True
 
+        # pylint: disable=no-member
         while build_ids:
             for build_id in build_ids:
                 build = self.copr.build_proxy.get(build_id)
