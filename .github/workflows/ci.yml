@@ -30,9 +30,9 @@ jobs:
         sudo apt-get -qq update
         sudo apt-get -qq install libkrb5-dev
         python -m pip install --upgrade pip
-        python -m pip install pylint pycodestyle pocketlint pytest
+        python -m pip install pylint pycodestyle pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-    - name: Lint with pocketlint
+    - name: Lint with pylint and pycodestyle
       run: |
         make check
     - name: Test with pytest
