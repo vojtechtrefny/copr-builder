@@ -207,8 +207,12 @@ class SRPMBuilder(object):
         if ret != 0:
             raise SRPMBuilderError('SPRM generation failed:\n %s' % out)
 
-        srpm = out.split('Wrote:')[1].strip()
-        log.info('%s SRPM built for %s: %s', self._log_prefix, pkg_name, srpm)
+        for line in out.split("\n"):
+            # XXX: we assume there is only one line starting with "Wrote:"
+            if line.startswith('Wrote:'):
+                srpm = line.split('Wrote:')[1].strip()
+                log.info('%s SRPM built for %s: %s', self._log_prefix, pkg_name, srpm)
+                break
 
         return srpm
 
