@@ -42,5 +42,8 @@ make PYTHON=%{__python3} test
 %{_bindir}/%{name}
 
 %changelog
+* Sun Aug 14 2022 Vojtech Trefny <vtrefny@redhat.com> - 1.1-1
+- New version 1.1
+
 * Sat May 21 2022 Vojtech Trefny <vtrefny@redhat.com> - 1.0-1
 - Initial packaging of copr-builder.

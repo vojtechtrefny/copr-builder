@@ -34,6 +34,11 @@ local:
 bumpver:
 	@NEWSUBVER=$$((`echo $(VERSION) | cut -d . -f 2` + 1)) ; \
 	NEWVERSION=`echo $(VERSION).$$NEWSUBVER | cut -d . -f 1,3` ; \
+	DATELINE="* `LANG="en_US" date "+%a %b %d %Y"` `git config user.name` <`git config user.email`> - $$NEWVERSION-1"  ; \
+	cl=`grep -n %changelog copr-builder.spec | head -1 |cut -d : -f 1` ; \
+	tail --lines=+$$(($$cl + 1)) copr-builder.spec > speclog ; \
+	(head -n $$cl copr-builder.spec ; echo "$$DATELINE" ; echo "- New version $$NEWVERSION"; echo ""; cat speclog) > copr-builder.spec.new ; \
+	mv copr-builder.spec.new copr-builder.spec ; rm -f speclog ; \
 	sed -i "s/version='$(VERSION)'/version='$$NEWVERSION'/" setup.py ; \
 	sed -i "s/Version:   $(VERSION)/Version:   $$NEWVERSION/" copr-builder.spec ; \
 
