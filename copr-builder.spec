@@ -1,7 +1,7 @@
 %global pyname copr_builder
 
 Name:      copr-builder
-Version:   1.0
+Version:   1.1
 Release:   1%{?dist}
 Summary:   Automation tool for building in Copr
 

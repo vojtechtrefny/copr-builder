@@ -8,7 +8,7 @@ with open("README.rst", "r", encoding="utf-8") as f:
 
 
 setuptools.setup(name='copr-builder',
-                 version='1.0',
+                 version='1.1',
                  description='Python script for building git projects in Copr',
                  long_description=long_description,
                  long_description_content_type="text/x-rst",
