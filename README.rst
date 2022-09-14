@@ -8,18 +8,20 @@ Usage
 
 ::
 
-  usage: copr-builder [-h] [-v] [-p [PROJECTS [PROJECTS ...]]] [-c CONFIG]
+  usage: copr-builder [-h] [-v] [-p [PROJECTS ...]] [-c CONFIG] [-C COPR_CONFIG]
 
   Copr builder
 
   optional arguments:
     -h, --help            show this help message and exit
     -v, --verbose         print debug messages
-    -p [PROJECTS [PROJECTS ...]], --projects [PROJECTS [PROJECTS ...]]
-                          projects to build; if not given, all projects from
-                          config will be built
+    -p [PROJECTS ...], --projects [PROJECTS ...]
+                          projects to build; if not given, all projects from config will be built
     -c CONFIG, --config CONFIG
                           config file location
+    -C COPR_CONFIG, --copr-config COPR_CONFIG
+                          Copr config file location (defaults to "~/.config/copr")
+
 
 Config file structure
 ---------------------
@@ -48,11 +50,15 @@ Config file structure
 
   - a *spec* file must be in the repo
 
-- **pre_archive_cmd** -- *(optional)* command which will be run before the spec file is read. This can be used to generate or download spec file.
-- **archive_cmd** -- command for creating archive from the source (e.g. "make local" or "git archive HEAD --prefix=package/ -o package.tar.gz")
+- **pre_archive_cmd** -- *(optional)* command which will be run before the spec file is read. This can be used to generate or download the spec file.
+- **archive_cmd** -- command for creating an archive from the source (e.g. "make local" or "git archive HEAD --prefix=package/ -o package.tar.gz")
 
-  - this command must create a single archive (*.tar.[gz|bz|bz2|xz]*) in the current directory
+  - this command must create at least one archive (*.tar.[gz|bz|bz2|xz]*) in the current directory
 
 - **git_url** -- URL of the Git repo (will be used for "git clone")
 - **git_branch** -- branch to use from the Git repo (e.g. "master")
 - **git_merge_branch** -- optional; if you need to merge another branch into *git_branch* before running the *archive_cmd*
+
+Copr builder will generate an SRPM from the provided git repository and send it to the specified Copr project to do a new build.
+A new build will be created only if there are some changes in the repository since the last build of the package.
+Release number in the SPEC file will be bumped for each build, date and git hash of the last commit are included in the release.
