@@ -53,7 +53,7 @@ Config file structure
 - **pre_archive_cmd** -- *(optional)* command which will be run before the spec file is read. This can be used to generate or download the spec file.
 - **archive_cmd** -- command for creating an archive from the source (e.g. "make local" or "git archive HEAD --prefix=package/ -o package.tar.gz")
 
-  - this command must create at least one archive (*.tar.[gz|bz|bz2|xz]*) in the current directory
+  - this command must create at least one source archive in the current directory
 
 - **git_url** -- URL of the Git repo (will be used for "git clone")
 - **git_branch** -- branch to use from the Git repo (e.g. "master")

@@ -2,6 +2,7 @@ import glob
 import logging
 import os
 import re
+import tarfile
 
 from . import GIT_URL_CONF, PACKAGE_CONF, PRE_ARCHIVE_CMD_CONF, ARCHIVE_CMD_CONF, GIT_BRANCH_CONF, \
     GIT_MERGE_BRANCH_CONF, CoprBuilderVersion
@@ -189,7 +190,8 @@ class SRPMBuilder(object):
             raise SRPMBuilderError('Failed to create source archive for %s:\n%s' % (self.project_data[PACKAGE_CONF], out))
 
         # archive should be created, get everything that looks like one
-        archives = [f for f in reversed(os.listdir(self.git_dir)) if re.match(r'.*\.tar\.(gz|bz|bz2|xz)$', f)]
+        paths = [os.path.join(self.git_dir, f) for f in os.listdir(self.git_dir)]
+        archives = [p for p in paths if (os.path.isfile(p) and tarfile.is_tarfile(p))]
         if not archives:
             raise SRPMBuilderError('Failed to find source archive after creating it.')
 
