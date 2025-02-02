@@ -1,6 +1,8 @@
 Copr Builder
 ============
 
+Note: This project is no longer being actively developed, I recommed using `Packit <https://packit.dev/>`_ instead.
+
 A simple program for building RPM packages from Git repositories in `Copr <https://copr.fedorainfracloud.org/>`_.
 
 Usage
